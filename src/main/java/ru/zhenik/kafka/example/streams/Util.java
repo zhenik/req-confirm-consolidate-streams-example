@@ -13,7 +13,17 @@ import org.apache.kafka.common.errors.TopicExistsException;
 
 public class Util {
 
-  private static Properties getDefaultPropsAdmin() {
+  final AdminClient adminClient;
+
+  private Util() {
+    this.adminClient = AdminClient.create(getDefaultPropsAdmin());
+  }
+
+  public static Util instance() {
+    return new Util();
+  }
+
+  private Properties getDefaultPropsAdmin() {
     final Properties properties = new Properties();
     properties.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
     properties.put(AdminClientConfig.CLIENT_ID_CONFIG, "admin-client-id-" + Instant.now().getEpochSecond());
@@ -21,9 +31,7 @@ public class Util {
     return properties;
   }
 
-  public static void createTopic(final String topic) {
-
-    final AdminClient adminClient = AdminClient.create(getDefaultPropsAdmin());
+  public void createTopic(final String topic) {
     try {
       // Define topic
       final NewTopic newTopic = new NewTopic(topic, 1, (short) 1);

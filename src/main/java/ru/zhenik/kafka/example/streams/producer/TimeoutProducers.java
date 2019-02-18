@@ -46,6 +46,6 @@ public class TimeoutProducers {
 
   public static void main(String[] args) throws InterruptedException {
     final TimeoutProducers timeoutProducers = new TimeoutProducers(StreamJoinApplication.topicRequest,StreamJoinApplication.topicConfirmation);
-    timeoutProducers.sendRequestAndConfirmation(8000L);
+    timeoutProducers.sendRequestAndConfirmation(10000L);
   }
 }
