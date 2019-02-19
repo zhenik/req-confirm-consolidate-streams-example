@@ -1,37 +1,33 @@
-package ru.zhenik.kafka.example.streams.producer;
+package ru.zhenik.kafka.example.streams;
+
 
 import java.time.Instant;
 import java.util.Properties;
 import java.util.UUID;
+import ru.zhenik.kafka.example.utils.Util;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringSerializer;
-import ru.zhenik.kafka.example.streams.StreamJoinApplication;
 
-public class TimeoutProducers {
-
+class TimeoutProducers {
 
   private final KafkaProducer<String, String> producer;
-  private final String topicRequest;
-  private final String topicConfirmation;
-  public final static String REQUEST = "request";
-  public final static String CONFIRMATION = "confirmation";
+  private final Util util;
 
-  public TimeoutProducers(final String topicRequest, final String topicConfirmation) {
+
+  TimeoutProducers(final String topicRequest, final String topicConfirmation) {
     this.producer = new KafkaProducer<>(getDefault());
-    this.topicRequest = topicRequest;
-    this.topicConfirmation = topicConfirmation;
+    this.util = Util.instance();
   }
 
 
-  public void sendRequestAndConfirmation(final Long deltaTime) throws InterruptedException {
+  void sendRequestAndConfirmation(final Long deltaTime) throws InterruptedException {
     final String key = UUID.randomUUID().toString();
-    producer.send(new ProducerRecord<>(topicRequest, key, REQUEST));
+    producer.send(new ProducerRecord<>(Util.TOPIC_REQUEST, key, Util.REQUEST));
     Thread.sleep(deltaTime);
-    producer.send(new ProducerRecord<>(topicConfirmation, key, CONFIRMATION));
+    producer.send(new ProducerRecord<>(Util.TOPIC_CONFIRMATION, key, Util.CONFIRMATION));
   }
-
 
   private Properties getDefault() {
     final Properties properties = new Properties();
@@ -44,8 +40,4 @@ public class TimeoutProducers {
     return properties;
   }
 
-  public static void main(String[] args) throws InterruptedException {
-    final TimeoutProducers timeoutProducers = new TimeoutProducers(StreamJoinApplication.topicRequest,StreamJoinApplication.topicConfirmation);
-    timeoutProducers.sendRequestAndConfirmation(6000L);
-  }
 }
