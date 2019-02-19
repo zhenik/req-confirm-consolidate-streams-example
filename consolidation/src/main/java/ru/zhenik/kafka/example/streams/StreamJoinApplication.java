@@ -75,10 +75,12 @@ public class StreamJoinApplication implements Runnable {
         .to(TOPIC_CONSOLIDATION, Produced.with(Serdes.String(), Serdes.String()));
 
     statusStream
-        .peek((k, v) -> System.out.println("Failed : "+k+" : "+v))
+        .peek((k, v) -> System.out.println("Status : " +k+" : "+v))
         .to(TOPIC_STATUS, Produced.with(Serdes.String(), Serdes.String()));
 
-    return streamsBuilder.build();
+    final Topology topology = streamsBuilder.build();
+    System.out.println("Topology\n"+topology.describe());
+    return topology;
   }
 
 

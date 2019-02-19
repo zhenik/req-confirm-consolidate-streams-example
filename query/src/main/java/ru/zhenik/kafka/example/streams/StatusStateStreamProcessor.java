@@ -46,7 +46,9 @@ public class StatusStateStreamProcessor implements Runnable {
             .withKeySerde(Serdes.String())
             .withValueSerde(Serdes.String()));
 
-    return streamsBuilder.build();
+    final Topology topology = streamsBuilder.build();
+    System.out.println("Topology\n"+topology.describe());
+    return topology;
   }
 
 
