@@ -1,14 +1,16 @@
 package ru.zhenik.kafka.example.streams;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.kafka.common.utils.Bytes;
 import java.util.Optional;
 import java.util.Properties;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
@@ -19,30 +21,27 @@ import org.apache.kafka.streams.state.KeyValueStore;
 import org.apache.kafka.streams.state.QueryableStoreType;
 import org.apache.kafka.streams.state.QueryableStoreTypes;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
+import ru.zhenik.kafka.example.utils.Util;
 
-import static ru.zhenik.kafka.example.streams.StreamJoinApplication.topicStatus;
+import static ru.zhenik.kafka.example.utils.Util.TOPIC_STATUS;
 
-public class QueryTopicRest implements Runnable {
+public class StatusStateStreamProcessor implements Runnable {
+  private final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private final KafkaStreams kafkaStreams;
   private final String storageName="status-storage";
-  private final Util utils;
+  private final Util util;
   private final QueryableStoreType<ReadOnlyKeyValueStore<String, String>> storageType;
 
-  public QueryTopicRest() {
-    this.utils = Util.instance();
-    try {
-      this.storageType = QueryableStoreTypes.keyValueStore();
-      this.kafkaStreams = new KafkaStreams(buildTopology(), getDefault());
-    } catch (Exception e) {
-      throw new IllegalArgumentException("Error creating Kafka Streams topology");
-    }
-
+  public StatusStateStreamProcessor() {
+    this.util = Util.instance();
+    this.storageType = QueryableStoreTypes.keyValueStore();
+    this.kafkaStreams = new KafkaStreams(buildTopology(), getDefault());
   }
 
   private Topology buildTopology() {
     final StreamsBuilder streamsBuilder = new StreamsBuilder();
     streamsBuilder.table(
-        topicStatus,
+        TOPIC_STATUS,
         Materialized.<String, String, KeyValueStore<Bytes, byte[]>>as(storageName)
             .withKeySerde(Serdes.String())
             .withValueSerde(Serdes.String()));
@@ -51,27 +50,28 @@ public class QueryTopicRest implements Runnable {
   }
 
 
-  public String getValue(final String key) {
-    String value = null;
+  public KeyValueRepresentation getValue(final String key) {
+    KeyValueRepresentation representation = null;
     final ReadOnlyKeyValueStore<String, String> store;
     try {
       store = waitUntilStoreIsQueryable(storageName, storageType, kafkaStreams);
-      value = store.get(key);
+      String value = store.get(key);
+      if (value!=null) representation=new KeyValueRepresentation(key, value);
+
     } catch (InterruptedException e) {
       e.printStackTrace();
     }
-    return value;
+    return representation;
   }
 
-  public List<String> getValues() {
-    List<String> values = new ArrayList<>();
+  public List<KeyValueRepresentation> getValues() {
+    List<KeyValueRepresentation> values = new ArrayList<>();
     try {
-      final ReadOnlyKeyValueStore<String, String> store =
-          waitUntilStoreIsQueryable(storageName, storageType, kafkaStreams);
+      final ReadOnlyKeyValueStore<String, String> store = waitUntilStoreIsQueryable(storageName, storageType, kafkaStreams);
       final KeyValueIterator<String, String> patternIterator = store.all();
       while (patternIterator.hasNext()) {
-        String patternJson = patternIterator.next().value;
-        values.add(patternJson);
+        final KeyValue<String, String> next = patternIterator.next();
+        values.add(new KeyValueRepresentation(next.key, next.value));
       }
     } catch (InterruptedException e) {
       e.printStackTrace();
@@ -106,24 +106,10 @@ public class QueryTopicRest implements Runnable {
   }
 
   @Override public void run() {
-    utils.createTopic(topicStatus);
+    util.createTopics();
     kafkaStreams.start();
   }
 
   void stopStreams() { Optional.ofNullable(kafkaStreams).ifPresent(KafkaStreams::close); }
-
-  public static void main(String[] args) throws InterruptedException {
-    final QueryTopicRest queryTopicRest = new QueryTopicRest();
-    queryTopicRest.run();
-    Runtime.getRuntime().addShutdownHook(new Thread(queryTopicRest::stopStreams));
-    //queryTopicRest.getValue("c97d9e8b-a0ba-48db-9a0a-6b261a139ca8");
-    Thread.sleep(5000L);
-    final List<String> values = queryTopicRest.getValues();
-    System.out.println(values);
-  }
-
-
-
-
 
 }
