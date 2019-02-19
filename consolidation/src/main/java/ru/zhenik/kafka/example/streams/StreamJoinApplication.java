@@ -15,16 +15,16 @@ import org.apache.kafka.streams.kstream.JoinWindows;
 import org.apache.kafka.streams.kstream.Joined;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Produced;
+import ru.zhenik.kafka.example.utils.Util;
+
+import static ru.zhenik.kafka.example.utils.Util.*;
+
 
 public class StreamJoinApplication implements Runnable {
   private final KafkaStreams kafkaStreams;
   private final Util utils;
-  public final static String topicRequest = "requests-v1";
-  public final static String topicConfirmation = "confirmations-v1";
-  public final static String topicConsolidation = "consolidations-v1";
-  public final static String topicStatus = "status-v1";
 
-  public StreamJoinApplication() {
+  StreamJoinApplication() {
     this.kafkaStreams = new KafkaStreams(buildTopology(), getDefault());
     this.utils = Util.instance();
   }
@@ -33,16 +33,16 @@ public class StreamJoinApplication implements Runnable {
     final StreamsBuilder streamsBuilder = new StreamsBuilder();
 
     final KStream<String, String> requestsStream =
-        streamsBuilder.stream(topicRequest, Consumed.with(Serdes.String(), Serdes.String()));
+        streamsBuilder.stream(TOPIC_REQUEST, Consumed.with(Serdes.String(), Serdes.String()));
 
     final KStream<String, String> confirmationsStream =
-        streamsBuilder.stream(topicConfirmation, Consumed.with(Serdes.String(), Serdes.String()));
+        streamsBuilder.stream(TOPIC_CONFIRMATION, Consumed.with(Serdes.String(), Serdes.String()));
 
     final KStream<String, String> consolidatedStream = requestsStream.join(
         // other topic to join
         confirmationsStream,
         // left value, right value -> return value
-        (requestValue, confirmedValue) -> confirmedValue + " : consolidated",
+        (requestValue, confirmedValue) -> CONSOLIDATED,
         // window
         JoinWindows.of(Duration.ofSeconds(5)),
         // how to join (ser and desers)
@@ -72,17 +72,11 @@ public class StreamJoinApplication implements Runnable {
 
     consolidatedStream
         .peek((k, v) -> System.out.println("Consolidated : "+k+" : "+v))
-        .to(topicConsolidation, Produced.with(Serdes.String(), Serdes.String()));
+        .to(TOPIC_CONSOLIDATION, Produced.with(Serdes.String(), Serdes.String()));
 
     statusStream
         .peek((k, v) -> System.out.println("Failed : "+k+" : "+v))
-        .to(topicStatus, Produced.with(Serdes.String(), Serdes.String()));
-
-    streamsBuilder
-        .table(topicStatus, Consumed.with(Serdes.String(), Serdes.String()))
-        .filter((k,v)->"request not confirmed yet".equalsIgnoreCase(v))
-        .toStream()
-        .peek((k,v)-> System.out.println(k+" : "+v));
+        .to(TOPIC_STATUS, Produced.with(Serdes.String(), Serdes.String()));
 
     return streamsBuilder.build();
   }
@@ -100,18 +94,11 @@ public class StreamJoinApplication implements Runnable {
   }
 
   @Override public void run() {
-    utils.createTopic(topicRequest);
-    utils.createTopic(topicConfirmation);
-    utils.createTopic(topicConsolidation);
-    utils.createTopic(topicStatus);
+    utils.createTopics();
     kafkaStreams.start();
   }
 
   void stopStreams() { Optional.ofNullable(kafkaStreams).ifPresent(KafkaStreams::close); }
 
-  public static void main(String[] args) {
-    final StreamJoinApplication streamJoinApplication = new StreamJoinApplication();
-    streamJoinApplication.run();
-    Runtime.getRuntime().addShutdownHook(new Thread(streamJoinApplication::stopStreams));
-  }
+
 }
