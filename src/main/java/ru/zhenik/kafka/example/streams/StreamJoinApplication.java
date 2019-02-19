@@ -21,8 +21,8 @@ public class StreamJoinApplication implements Runnable {
   private final Util utils;
   public final static String topicRequest = "requests-v1";
   public final static String topicConfirmation = "confirmations-v1";
-  private final String topicConsolidation = "consolidations-v1";
-  private final String topicStatus = "status-v1";
+  public final static String topicConsolidation = "consolidations-v1";
+  public final static String topicStatus = "status-v1";
 
   public StreamJoinApplication() {
     this.kafkaStreams = new KafkaStreams(buildTopology(), getDefault());
