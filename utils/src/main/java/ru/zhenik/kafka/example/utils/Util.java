@@ -1,7 +1,6 @@
-package ru.zhenik.kafka.example.streams;
+package ru.zhenik.kafka.example.utils;
 
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
@@ -12,6 +11,15 @@ import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.common.errors.TopicExistsException;
 
 public class Util {
+
+  public final static String TOPIC_REQUEST = "requests-v1";
+  public final static String TOPIC_CONFIRMATION = "confirmations-v1";
+  public final static String TOPIC_CONSOLIDATION = "consolidations-v1";
+  public final static String TOPIC_STATUS = "status-v1";
+
+  public final static String REQUEST = "request";
+  public final static String CONFIRMATION = "confirmation";
+  public final static String CONSOLIDATED = "consolidated";
 
   final AdminClient adminClient;
 
@@ -29,6 +37,13 @@ public class Util {
     properties.put(AdminClientConfig.CLIENT_ID_CONFIG, "admin-client-id-" + Instant.now().getEpochSecond());
     properties.put(AdminClientConfig.REQUEST_TIMEOUT_MS_CONFIG, 500);
     return properties;
+  }
+
+  public void createTopics() {
+    createTopic(TOPIC_REQUEST);
+    createTopic(TOPIC_CONFIRMATION);
+    createTopic(TOPIC_CONSOLIDATION);
+    createTopic(TOPIC_STATUS);
   }
 
   public void createTopic(final String topic) {
