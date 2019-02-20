@@ -53,6 +53,8 @@ public class StreamJoinApplication implements Runnable {
         )
     );
 
+    //todo: consolidation-failed stream
+
     final KStream<String, String> statusStream =
         requestsStream
             .outerJoin(
