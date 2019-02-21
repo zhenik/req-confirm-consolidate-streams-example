@@ -12,14 +12,17 @@ import org.apache.kafka.common.errors.TopicExistsException;
 
 public class Util {
 
-  public final static String TOPIC_REQUEST = "requests-v1";
-  public final static String TOPIC_CONFIRMATION = "confirmations-v1";
-  public final static String TOPIC_CONSOLIDATION = "consolidations-v1";
-  public final static String TOPIC_STATUS = "status-v1";
+  public final static String prefix = "nt-";
+  public final static String TOPIC_REQUEST = prefix+"requests-v1";
+  public final static String TOPIC_CONFIRMATION = prefix+"confirmations-v1";
+  public final static String TOPIC_CONSOLIDATION = prefix+"consolidations-v1";
+  public final static String TOPIC_STATUS = prefix+"status-v1";
 
-  public final static String REQUEST = "request";
-  public final static String CONFIRMATION = "confirmation";
-  public final static String CONSOLIDATED = "consolidated";
+  public final static String REQUEST_PENDING = "request:PENDING";
+  public final static String REQUEST_CONFIRMATION = "request:REQUEST_CONFIRMATION";
+  public final static String REQUEST_CONSOLIDATED = "request:REQUEST_CONSOLIDATED";
+  public final static String STATUS_CONSOLIDATED = "status:CONSOLIDATED";
+  public final static String STATUS_NOT_CONSOLIDATED_YET = "status:NOT_CONSOLIDATED_YET";
 
   final AdminClient adminClient;
 

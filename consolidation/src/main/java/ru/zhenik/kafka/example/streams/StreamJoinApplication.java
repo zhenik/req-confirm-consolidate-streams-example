@@ -42,7 +42,7 @@ public class StreamJoinApplication implements Runnable {
         // other topic to join
         confirmationsStream,
         // left value, right value -> return value
-        (requestValue, confirmedValue) -> CONSOLIDATED,
+        (requestValue, confirmedValue) -> REQUEST_CONSOLIDATED,
         // window
         JoinWindows.of(Duration.ofSeconds(5)),
         // how to join (ser and desers)
@@ -62,7 +62,7 @@ public class StreamJoinApplication implements Runnable {
                 consolidatedStream,
                 // left value, right value -> return value
                 (requestValue, confirmedValue) ->
-                    (confirmedValue == null) ? requestValue + " not confirmed yet": requestValue + " confirmed",
+                    (confirmedValue == null) ? STATUS_NOT_CONSOLIDATED_YET : STATUS_CONSOLIDATED,
                 // window
                 JoinWindows.of(Duration.ofSeconds(5)),
                 // how to join (ser and desers)

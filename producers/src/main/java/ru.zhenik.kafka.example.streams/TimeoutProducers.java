@@ -24,9 +24,9 @@ class TimeoutProducers {
 
   void sendRequestAndConfirmation(final Long deltaTime) throws InterruptedException {
     final String key = UUID.randomUUID().toString();
-    producer.send(new ProducerRecord<>(Util.TOPIC_REQUEST, key, Util.REQUEST));
+    producer.send(new ProducerRecord<>(Util.TOPIC_REQUEST, key, Util.REQUEST_PENDING));
     Thread.sleep(deltaTime);
-    producer.send(new ProducerRecord<>(Util.TOPIC_CONFIRMATION, key, Util.CONFIRMATION));
+    producer.send(new ProducerRecord<>(Util.TOPIC_CONFIRMATION, key, Util.REQUEST_CONFIRMATION));
   }
 
   private Properties getDefault() {
