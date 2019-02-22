@@ -65,16 +65,12 @@ public class StreamJoinApplication implements Runnable {
         )
     );
 
-    final KStream<String, String> confirmationCameNeverStream = confirmationsStream.outerJoin(
-        // other topic to join
-        requestsStream,
-        //confirmationsStream,
-        // left value, right value -> return value
-        (confirmedValue, requestValue) ->
-            String.format("confirmationValue: %s ,requestValue: %s", confirmedValue, requestValue),
-        // window
-        JoinWindows.of(Duration.ofSeconds(0)).before(Duration.ofSeconds(5)),
-        // how to join (ser and desers)
+    // how to define that
+    final KStream<String, String> confirmationCameNeverStream = requestsStream.leftJoin(
+        confirmationsStream,
+        (requestValue, confirmationValue) ->
+            String.format("requestValue: %s ,confirmationValue: %s", requestValue, confirmationValue),
+        JoinWindows.of(Duration.ofSeconds(0)).after(Duration.ofSeconds(10)),
         Joined.with(
             Serdes.String(), /* key */
             Serdes.String(), /* left value */
@@ -82,22 +78,23 @@ public class StreamJoinApplication implements Runnable {
         )
     );
 
-    final KStream<String, String> confirmationCameLateStream = confirmationsStream.leftJoin(
-        // other topic to join
-        consolidatedStream,
-        //confirmationsStream,
-        // left value, right value -> return value
-        (confirmationValue, consolidatedValue) ->
-            String.format("confirmationValue: %s ,consolidatedValue: %s", confirmationValue, consolidatedValue),
-        // window
-        JoinWindows.of(Duration.ofSeconds(0)).after(Duration.ofSeconds(5)),
-        // how to join (ser and desers)
-        Joined.with(
-            Serdes.String(), /* key */
-            Serdes.String(), /* left value */
-            Serdes.String()  /* right value */
-        )
-    );
+    // confirmations came late. Definition of time window should be >= (bigger or equal) with time window for consolidation
+    final KStream<String, String> confirmationCameLateStream =
+        confirmationsStream
+            .leftJoin(
+                consolidatedStream,
+                (confirmationValue, consolidatedValue) -> {
+                  System.out.println(String.format("confirmationValue: %s ,consolidatedValue: %s", confirmationValue, consolidatedValue));
+                  return consolidatedValue==null ? "CAME_LATE" : consolidatedValue ;
+                },
+                // window
+                JoinWindows.of(Duration.ofSeconds(0)).after(Duration.ofSeconds(5)),
+                // how to join (ser and desers)
+                Joined.with(
+                    Serdes.String(), /* key */
+                    Serdes.String(), /* left value */
+                    Serdes.String() /* right value */))
+            .filter( (ignored, value) -> "CAME_LATE".equalsIgnoreCase(value));
 
     confirmationCameNeverStream.to("nt-confirmation-came-never");
     confirmationCameLateStream.to("nt-confirmation-came-late");
