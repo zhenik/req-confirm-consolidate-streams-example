@@ -17,6 +17,7 @@ public class Util {
   public final static String TOPIC_CONFIRMATION = prefix+"confirmations-v1";
   public final static String TOPIC_CONSOLIDATION = prefix+"consolidations-v1";
   public final static String TOPIC_STATUS = prefix+"status-v1";
+  public final static String TOPIC_REQUEST_ERROR = prefix+"requests-error-v1";
 
   public final static String REQUEST_PENDING = "request:PENDING";
   public final static String REQUEST_CONFIRMATION = "request:REQUEST_CONFIRMATION";
@@ -47,6 +48,10 @@ public class Util {
     createTopic(TOPIC_CONFIRMATION);
     createTopic(TOPIC_CONSOLIDATION);
     createTopic(TOPIC_STATUS);
+    createTopic("nt-confirmation-came-never");
+    createTopic("nt-confirmation-came-late");
+    createTopic("topic-2");
+    //createTopic(TOPIC_STATUS);
   }
 
   public void createTopic(final String topic) {
