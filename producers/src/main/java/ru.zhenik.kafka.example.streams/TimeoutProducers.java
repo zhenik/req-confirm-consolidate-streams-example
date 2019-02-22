@@ -4,6 +4,8 @@ package ru.zhenik.kafka.example.streams;
 import java.time.Instant;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import ru.zhenik.kafka.example.utils.Util;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -22,11 +24,23 @@ class TimeoutProducers {
   }
 
 
-  void sendRequestAndConfirmation(final Long deltaTime) throws InterruptedException {
-    final String key = UUID.randomUUID().toString();
-    producer.send(new ProducerRecord<>(Util.TOPIC_REQUEST, key, Util.REQUEST_PENDING));
+  void sendRequestAndConfirmation(final Long deltaTime, final String key)
+      throws InterruptedException, ExecutionException {
+    sendRequestOnly(key);
     Thread.sleep(deltaTime);
-    producer.send(new ProducerRecord<>(Util.TOPIC_CONFIRMATION, key, Util.REQUEST_CONFIRMATION));
+    sendConfirmationOnly(key);
+  }
+
+  void sendRequestOnly(String key) throws ExecutionException, InterruptedException {
+    final RecordMetadata recordMetadata =
+        producer.send(new ProducerRecord<>(Util.TOPIC_REQUEST, key, Util.REQUEST_PENDING)).get();
+    System.out.println(recordMetadata);
+  }
+  void sendConfirmationOnly(String key) throws ExecutionException, InterruptedException {
+    final RecordMetadata recordMetadata =
+        producer.send(new ProducerRecord<>(Util.TOPIC_CONFIRMATION, key, Util.REQUEST_CONFIRMATION))
+            .get();
+    System.out.println(recordMetadata);
   }
 
   private Properties getDefault() {
