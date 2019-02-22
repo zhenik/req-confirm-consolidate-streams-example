@@ -2,10 +2,12 @@
 ![diagram](imgs/poc_stream_subscriptions.png)
 
 ## Case specific
-`Success`:
+`Success`:  
+
 0. `Request` sent, receives `confirmation` with OK status, within time window for processing(join)
 
-`Fail`:
+`Fail`:  
+
 1. `Request` sent, receives `confirmation` with FAIL status
 2. `Request` sent, `confirmation` not arrived at all, rich time-out for time window for processing(join) 
 3. `Request` sent, `confirmation` but arrived after time-out for time window for processing(join) 

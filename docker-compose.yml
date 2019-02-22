@@ -6,6 +6,7 @@ services:
     environment:
       ADV_HOST: localhost    # Change to 192.168.99.100 if using Docker Toolbox or leave localhost
       RUNTESTS: 0            # Disable Running tests so the cluster starts faster
+      CONNECTORS: jdbc
     ports:
       - "2181:2181"                 # Zookeeper
       - "3030:3030"                 # Landoop UI
