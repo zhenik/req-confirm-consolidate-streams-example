@@ -15,8 +15,8 @@ public class App {
     String idNever = "CONFIRMATION-COME-NEVER-A";
     String idCameLate = "CONFIRMATION-COME-LATE-A";
 
-    //timeoutProducers.sendRequestAndConfirmation(1000L, idInTime);
-    //timeoutProducers.sendRequestOnly(idNever); //todo: came-never ???
+    timeoutProducers.sendRequestAndConfirmation(1000L, idInTime);
+    timeoutProducers.sendRequestOnly(idNever); //todo: came-never ???
     timeoutProducers.sendRequestAndConfirmation(8000L, idCameLate);
 
     //final List<Integer> integers = Arrays.asList(1, 2, 3, 4, 5);

@@ -25,7 +25,7 @@ import org.apache.kafka.streams.state.QueryableStoreTypes;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
 import ru.zhenik.kafka.example.utils.Util;
 
-import static ru.zhenik.kafka.example.utils.Util.TOPIC_STATUS;
+import static ru.zhenik.kafka.example.utils.Util.TOPIC_STATUS_CONSOLIDATED;
 
 // According docs:
 // 1. https://github.com/confluentinc/kafka-streams-examples/blob/5.1.2-post/src/main/java/io/confluent/examples/streams/interactivequeries/WordCountInteractiveQueriesExample.java#L174
@@ -47,7 +47,7 @@ public class StatusStateStreamProcessor implements Runnable {
   private Topology buildTopology() {
     final StreamsBuilder streamsBuilder = new StreamsBuilder();
     streamsBuilder.table(
-        TOPIC_STATUS,
+        TOPIC_STATUS_CONSOLIDATED,
         Materialized.<String, String, KeyValueStore<Bytes, byte[]>>as(storageName)
             .withCachingEnabled()
             .withKeySerde(Serdes.String())

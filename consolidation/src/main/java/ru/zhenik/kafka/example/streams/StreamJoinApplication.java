@@ -14,13 +14,14 @@ import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.JoinWindows;
 import org.apache.kafka.streams.kstream.Joined;
 import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Produced;
 import ru.zhenik.kafka.example.utils.Util;
 
 import static ru.zhenik.kafka.example.utils.Util.*;
 
 /**
- * From doc about JoinWindow
+ * From doc about JoinWindow (sliding)
  *    stream1.ts - before <= stream2.ts <= stream1.ts + after
  *
  * Options:
@@ -65,12 +66,12 @@ public class StreamJoinApplication implements Runnable {
         )
     );
 
-    // how to define that
-    final KStream<String, String> confirmationCameNeverStream = requestsStream.leftJoin(
-        confirmationsStream,
-        (requestValue, confirmationValue) ->
-            String.format("requestValue: %s ,confirmationValue: %s", requestValue, confirmationValue),
-        JoinWindows.of(Duration.ofSeconds(0)).after(Duration.ofSeconds(10)),
+    // todo: how to define that
+    final KStream<String, String> confirmationCameNeverStream = confirmationsStream.outerJoin(
+        requestsStream,
+        (confirmationValue, requestValue) ->
+            String.format("OUTER: confirmationValue: %s ,requestValue: %s", confirmationValue, requestValue),
+        JoinWindows.of(Duration.ofSeconds(10)),
         Joined.with(
             Serdes.String(), /* key */
             Serdes.String(), /* left value */
@@ -104,6 +105,7 @@ public class StreamJoinApplication implements Runnable {
         .to(TOPIC_CONSOLIDATION, Produced.with(Serdes.String(), Serdes.String()));
 
 
+    // todo: remove later
     //final KStream<String, String> failureRequestStream =
     //    requestsStream.leftJoin(
     //        consolidatedStream,
@@ -111,10 +113,9 @@ public class StreamJoinApplication implements Runnable {
     //          System.out.printf("Before LeftJoin: [%s : %s]\n", requestValue, consolidatedValue);
     //          return String.format("requestValue: %s ,consolidatedValue: %s", requestValue, consolidatedValue);
     //        },
-    //        // todo:  try with grace()
     //        // todo: try with session windows
     //        // https://kafka.apache.org/20/documentation/streams/developer-guide/dsl-api.html#session-windows
-    //        JoinWindows.of(Duration.ofSeconds(5)).after(Duration.ofSeconds(5)),
+    //        JoinWindows.of(Duration.ofSeconds(0)).after(Duration.ofSeconds(5)),
     //        // how to join (ser and desers)
     //        Joined.with(
     //            Serdes.String(), /* key */
@@ -126,29 +127,44 @@ public class StreamJoinApplication implements Runnable {
     //    .to(TOPIC_REQUEST_ERROR, Produced.with(Serdes.String(), Serdes.String()));
 
 
-    //todo: consolidation-failed stream
+    final KStream<String, String> consolidatedStatusStream =
+        requestsStream
+            .outerJoin(
+                consolidatedStream,
+                (requestValue, confirmedValue) ->
+                    (confirmedValue == null) ? STATUS_NOT_CONSOLIDATED_YET : STATUS_CONSOLIDATED,
+                JoinWindows.of(Duration.ofSeconds(5)),
+                Joined.with(
+                    Serdes.String(), /* key */
+                    Serdes.String(), /* left value */
+                    Serdes.String() /* right value */)
+            );
 
-    //final KStream<String, String> statusStream =
-    //    requestsStream
-    //        .outerJoin(
-    //            // other topic to join
-    //            consolidatedStream,
-    //            // left value, right value -> return value
-    //            (requestValue, confirmedValue) ->
-    //                (confirmedValue == null) ? STATUS_NOT_CONSOLIDATED_YET : STATUS_CONSOLIDATED,
-    //            // window
-    //            JoinWindows.of(Duration.ofSeconds(5)),
-    //            // how to join (ser and desers)
-    //            Joined.with(
-    //                Serdes.String(), /* key */
-    //                Serdes.String(), /* left value */
-    //                Serdes.String() /* right value */)
-    //        );
+    final KStream<String, String> requestStatusStream =
+        requestsStream
+            .leftJoin(
+                confirmationsStream,
+                (requestValue, confirmedValue) ->
+                    (confirmedValue == null) ? "REQUEST_NOT_CONFIRMED_YET" : "REQUEST_CONFIRMED",
+                JoinWindows.of(Duration.ofSeconds(0)).after(Duration.ofSeconds(5)),
+                Joined.with(
+                    Serdes.String(), /* key */
+                    Serdes.String(), /* left value */
+                    Serdes.String() /* right value */)
+            );
 
+    consolidatedStatusStream
+        .peek((k, v) -> System.out.println("Consolidated Status : " +k+" : "+v))
+        .to(TOPIC_STATUS_CONSOLIDATED, Produced.with(Serdes.String(), Serdes.String()));
 
-    //statusStream
-    //    .peek((k, v) -> System.out.println("Status : " +k+" : "+v))
-    //    .to(TOPIC_STATUS, Produced.with(Serdes.String(), Serdes.String()));
+    requestStatusStream
+        .peek((k, v) -> System.out.println("Requests confirmation status : " +k+" : "+v))
+        .to(TOPIC_STATUS_REQUESTS_CONFIRMED, Produced.with(Serdes.String(), Serdes.String()));
+
+    final KTable<String, String> statusRequestsTable = streamsBuilder
+        .table(TOPIC_STATUS_REQUESTS_CONFIRMED, Consumed.with(Serdes.String(), Serdes.String()))
+        .filter((k, v) -> "REQUEST_NOT_CONFIRMED_YET".equalsIgnoreCase(v));
+
 
     final Topology topology = streamsBuilder.build();
     System.out.println("Topology\n"+topology.describe());
