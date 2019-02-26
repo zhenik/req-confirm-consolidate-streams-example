@@ -53,7 +53,6 @@ public class StreamJoinApplication implements Runnable {
     final KStream<String, String> consolidatedStream = confirmationsStream.join(
         // other topic to join
         requestsStream,
-        //confirmationsStream,
         // left value, right value -> return value
         (confirmedValue, requestValue) -> REQUEST_CONSOLIDATED,
         // window
@@ -66,18 +65,6 @@ public class StreamJoinApplication implements Runnable {
         )
     );
 
-    // todo: how to define that
-    final KStream<String, String> confirmationCameNeverStream = confirmationsStream.outerJoin(
-        requestsStream,
-        (confirmationValue, requestValue) ->
-            String.format("OUTER: confirmationValue: %s ,requestValue: %s", confirmationValue, requestValue),
-        JoinWindows.of(Duration.ofSeconds(10)),
-        Joined.with(
-            Serdes.String(), /* key */
-            Serdes.String(), /* left value */
-            Serdes.String()  /* right value */
-        )
-    );
 
     // confirmations came late. Definition of time window should be >= (bigger or equal) with time window for consolidation
     final KStream<String, String> confirmationCameLateStream =
@@ -97,35 +84,11 @@ public class StreamJoinApplication implements Runnable {
                     Serdes.String() /* right value */))
             .filter( (ignored, value) -> "CAME_LATE".equalsIgnoreCase(value));
 
-    confirmationCameNeverStream.to("nt-confirmation-came-never");
     confirmationCameLateStream.to("nt-confirmation-came-late");
 
     consolidatedStream
         .peek((k, v) -> System.out.println("Consolidated : "+k+" : "+v))
         .to(TOPIC_CONSOLIDATION, Produced.with(Serdes.String(), Serdes.String()));
-
-
-    // todo: remove later
-    //final KStream<String, String> failureRequestStream =
-    //    requestsStream.leftJoin(
-    //        consolidatedStream,
-    //        (requestValue, consolidatedValue) -> {
-    //          System.out.printf("Before LeftJoin: [%s : %s]\n", requestValue, consolidatedValue);
-    //          return String.format("requestValue: %s ,consolidatedValue: %s", requestValue, consolidatedValue);
-    //        },
-    //        // todo: try with session windows
-    //        // https://kafka.apache.org/20/documentation/streams/developer-guide/dsl-api.html#session-windows
-    //        JoinWindows.of(Duration.ofSeconds(0)).after(Duration.ofSeconds(5)),
-    //        // how to join (ser and desers)
-    //        Joined.with(
-    //            Serdes.String(), /* key */
-    //            Serdes.String(), /* left value */
-    //            Serdes.String() /* right value */))
-    //    .peek((k,v)-> System.out.printf("After LeftJoin: [%s : %s]\n", k, v));
-    //
-    //failureRequestStream
-    //    .to(TOPIC_REQUEST_ERROR, Produced.with(Serdes.String(), Serdes.String()));
-
 
     final KStream<String, String> consolidatedStatusStream =
         requestsStream
@@ -160,10 +123,6 @@ public class StreamJoinApplication implements Runnable {
     requestStatusStream
         .peek((k, v) -> System.out.println("Requests confirmation status : " +k+" : "+v))
         .to(TOPIC_STATUS_REQUESTS_CONFIRMED, Produced.with(Serdes.String(), Serdes.String()));
-
-    final KTable<String, String> statusRequestsTable = streamsBuilder
-        .table(TOPIC_STATUS_REQUESTS_CONFIRMED, Consumed.with(Serdes.String(), Serdes.String()))
-        .filter((k, v) -> "REQUEST_NOT_CONFIRMED_YET".equalsIgnoreCase(v));
 
 
     final Topology topology = streamsBuilder.build();

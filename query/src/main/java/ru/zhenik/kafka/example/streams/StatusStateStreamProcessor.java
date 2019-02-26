@@ -24,8 +24,7 @@ import org.apache.kafka.streams.state.QueryableStoreType;
 import org.apache.kafka.streams.state.QueryableStoreTypes;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
 import ru.zhenik.kafka.example.utils.Util;
-
-import static ru.zhenik.kafka.example.utils.Util.TOPIC_STATUS_CONSOLIDATED;
+import static ru.zhenik.kafka.example.utils.Util.TOPIC_STATUS_REQUESTS_CONFIRMED;
 
 // According docs:
 // 1. https://github.com/confluentinc/kafka-streams-examples/blob/5.1.2-post/src/main/java/io/confluent/examples/streams/interactivequeries/WordCountInteractiveQueriesExample.java#L174
@@ -33,7 +32,7 @@ import static ru.zhenik.kafka.example.utils.Util.TOPIC_STATUS_CONSOLIDATED;
 public class StatusStateStreamProcessor implements Runnable {
   private final File example;
   private final KafkaStreams kafkaStreams;
-  private final String storageName="status-storage";
+  private final String storageName="request-status-storage";
   private final Util util;
   private final QueryableStoreType<ReadOnlyKeyValueStore<String, String>> storageType;
 
@@ -47,7 +46,7 @@ public class StatusStateStreamProcessor implements Runnable {
   private Topology buildTopology() {
     final StreamsBuilder streamsBuilder = new StreamsBuilder();
     streamsBuilder.table(
-        TOPIC_STATUS_CONSOLIDATED,
+        TOPIC_STATUS_REQUESTS_CONFIRMED,
         Materialized.<String, String, KeyValueStore<Bytes, byte[]>>as(storageName)
             .withCachingEnabled()
             .withKeySerde(Serdes.String())
